@@ -1,0 +1,198 @@
+.sidebar {
+  width: 200px;
+  background-color: #1a2332;
+  color: white;
+  padding: 20px 0 0;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header / university selector ───────────────── */
+.sidebar-header {
+  padding: 0 15px 24px;
+  border-bottom: 1px solid #2a3f5f;
+}
+
+.university-selector {
+  position: relative;
+}
+
+.university-button {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: #2a3f5f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.university-button:hover {
+  background-color: #3a4f6f;
+}
+
+.university-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #2a3f5f;
+  border-radius: 6px;
+  margin-top: 5px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover,
+.dropdown-item.active {
+  background-color: #17c997;
+}
+
+/* ── Nav ─────────────────────────────────────────── */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  flex: 1;
+}
+
+.nav-item {
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  color: #c8d6e5;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+  background-color: #2a3f5f;
+  color: white;
+}
+
+.nav-item.active {
+  background-color: #2a3f5f;
+  border-left-color: #17c997;
+  color: #17c997;
+}
+
+/* ── Bottom section ──────────────────────────────── */
+.sidebar-bottom {
+  border-top: 1px solid #2a3f5f;
+  padding: 12px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-bottom-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: default;
+  color: white;
+  border-radius: 0;
+  transition: background 0.2s;
+}
+
+/* Admin row is clickable */
+.admin-item {
+  cursor: pointer;
+}
+
+.admin-item:hover {
+  background-color: #2a3f5f;
+}
+
+/* ── Avatars ─────────────────────────────────────── */
+.sidebar-bottom-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.admin-avatar {
+  background-color: #4a90d9;
+  color: white;
+}
+
+.finance-avatar {
+  background-color: #17c997;
+  color: white;
+}
+
+/* ── Text stack ──────────────────────────────────── */
+.sidebar-bottom-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-bottom-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-bottom-sub {
+  font-size: 11px;
+  color: #8899aa;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.finance-status {
+  color: #7ecdb8;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #17c997;
+  flex-shrink: 0;
+  display: inline-block;
+}

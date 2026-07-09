@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
-import { FiFlag, FiAlertCircle } from 'react-icons/fi';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { FiFlag } from 'react-icons/fi';
 import DateRangeFilter from '../components/DateRangeFilter';
 import SortBy from '../components/SortBy';
 import './ReferralPayouts.css';
 
 function ReferralPayouts({ university }) {
-  const [activeTab, setActiveTab] = useState('urgent');
+  const [activeTab, setActiveTab] = useState('all');
   const [flaggedItems, setFlaggedItems] = useState(new Set());
-  const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
   const [sortBy, setSortBy] = useState('date-newest');
   const [dateRange, setDateRange] = useState(null);
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalItemId, setModalItemId] = useState(null);
+  const [modalText, setModalText] = useState('');
+  const [modalOriginalText, setModalOriginalText] = useState('');
+  const [descriptions, setDescriptions] = useState({});
+  const modalRef = useRef(null);
 
   const calculateDaysAgo = (daysBack) => {
     const date = new Date();
@@ -99,9 +106,6 @@ function ReferralPayouts({ university }) {
     let filtered = mockData;
 
     switch (activeTab) {
-      case 'urgent':
-        filtered = filtered.filter((item) => item.isUrgent);
-        break;
       case 'docVerification':
         filtered = filtered.filter((item) => item.stage === 'Doc Verification');
         break;
@@ -124,7 +128,11 @@ function ReferralPayouts({ university }) {
     }
 
     filtered = sortData(filtered);
-    return filtered;
+
+    // Always push urgent items to the top, preserving relative order within urgent/non-urgent
+    const urgentItems = filtered.filter((item) => item.isUrgent);
+    const nonUrgentItems = filtered.filter((item) => !item.isUrgent);
+    return [...urgentItems, ...nonUrgentItems];
   };
 
   const filterDataForStats = () => {
@@ -168,18 +176,33 @@ function ReferralPayouts({ university }) {
   const calculateStats = () => {
     const statsData = filterDataForStats();
 
-    const totalDue = statsData.reduce((sum, item) => sum + item.amountValue, 0);
+    const totalDue = mockData.reduce((sum, item) => sum + item.amountValue, 0);
+    const filteredDue = statsData.reduce((sum, item) => sum + item.amountValue, 0);
     const bankIssues = statsData.filter((item) => item.stage === 'Bank Verification').length;
     const pendingVerification = statsData.filter(
       (item) => item.stage === 'Doc Verification'
     ).length;
 
-    const now = new Date();
-    const currentMonth = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    // Dynamic duration label
+    let durationLabel;
+    let durationSubtext;
+    const formatShortDate = (d) =>
+      d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    if (dateRange && dateRange.startDate && dateRange.endDate) {
+      durationLabel = 'Selected Duration';
+      durationSubtext = `${formatShortDate(dateRange.startDate)} – ${formatShortDate(dateRange.endDate)}`;
+    } else {
+      const now = new Date();
+      durationLabel = 'This Month';
+      durationSubtext = now.toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    }
 
     return {
       totalDue: `₹${totalDue.toLocaleString('en-IN')}`,
-      thisMonth: currentMonth,
+      filteredDue: `₹${filteredDue.toLocaleString('en-IN')}`,
+      durationLabel,
+      durationSubtext,
       bankIssues,
       pendingVerification,
     };
@@ -198,6 +221,19 @@ function ReferralPayouts({ university }) {
     }
   };
 
+  const getTabKeyForStage = (stage) => {
+    switch (stage) {
+      case 'Doc Verification':
+        return 'docVerification';
+      case 'Bank Verification':
+        return 'bankVerification';
+      case 'Payment Pending':
+        return 'paymentPending';
+      default:
+        return 'all';
+    }
+  };
+
   const toggleFlag = (id) => {
     const newFlagged = new Set(flaggedItems);
     if (newFlagged.has(id)) {
@@ -208,15 +244,53 @@ function ReferralPayouts({ university }) {
     setFlaggedItems(newFlagged);
   };
 
-  const toggleDescription = (id) => {
-    const newExpanded = new Set(expandedDescriptions);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedDescriptions(newExpanded);
+  // Open modal for a given item
+  const openModal = (item) => {
+    const currentDesc = descriptions[item.id] !== undefined ? descriptions[item.id] : item.description;
+    setModalItemId(item.id);
+    setModalOriginalText(currentDesc);
+    setModalText(currentDesc);
+    setModalOpen(true);
   };
+
+  // Close modal
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setModalItemId(null);
+    setModalText('');
+    setModalOriginalText('');
+  }, []);
+
+  // Save modal changes
+  const saveModal = () => {
+    if (modalItemId !== null) {
+      setDescriptions((prev) => ({ ...prev, [modalItemId]: modalText }));
+    }
+    closeModal();
+  };
+
+  const hasChanges = modalText !== modalOriginalText;
+
+  // Close modal on outside click
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        closeModal();
+      }
+    };
+
+    // Delay adding the listener so the opening click doesn't immediately close it
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [modalOpen, closeModal]);
 
   const tableData = filterDataForTable();
   const stats = calculateStats();
@@ -243,9 +317,9 @@ function ReferralPayouts({ university }) {
           <p>Amount</p>
         </div>
         <div className="stat-box">
-          <label>This Month</label>
-          <span className="stat-amount">{stats.totalDue}</span>
-          <p>{stats.thisMonth}</p>
+          <label>{stats.durationLabel}</label>
+          <span className="stat-amount">{stats.filteredDue}</span>
+          <p>{stats.durationSubtext}</p>
         </div>
         <div className="stat-box urgent-stat">
           <label>Bank Issues</label>
@@ -263,31 +337,27 @@ function ReferralPayouts({ university }) {
       <div className="tabs-container">
         <div className="tabs">
           <button
-            className={`tab ${activeTab === 'urgent' ? 'active' : ''}`}
-            onClick={() => setActiveTab('urgent')}
-          >
-            <FiAlertCircle size={16} /> Urgent
-          </button>
-          <button
-            className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+            className={`tab tab-all ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
             All
           </button>
           <button
-            className={`tab ${activeTab === 'docVerification' ? 'active' : ''}`}
+            className={`tab tab-step ${activeTab === 'docVerification' ? 'active' : ''}`}
             onClick={() => setActiveTab('docVerification')}
           >
             Doc Verification
           </button>
+          <span className="tab-arrow">→</span>
           <button
-            className={`tab ${activeTab === 'bankVerification' ? 'active' : ''}`}
+            className={`tab tab-step ${activeTab === 'bankVerification' ? 'active' : ''}`}
             onClick={() => setActiveTab('bankVerification')}
           >
             Bank Verification
           </button>
+          <span className="tab-arrow">→</span>
           <button
-            className={`tab ${activeTab === 'paymentPending' ? 'active' : ''}`}
+            className={`tab tab-step ${activeTab === 'paymentPending' ? 'active' : ''}`}
             onClick={() => setActiveTab('paymentPending')}
           >
             Payment Pending
@@ -328,33 +398,26 @@ function ReferralPayouts({ university }) {
                 <td className="amount">{item.amount}</td>
                 <td className="stage-cell">
                   <span
-                    className="stage-badge"
+                    className="stage-badge stage-badge-clickable"
                     style={{
                       backgroundColor: getStageColor(item.stage),
                       color: 'white',
                     }}
+                    onClick={() => setActiveTab(getTabKeyForStage(item.stage))}
+                    title={`View all ${item.stage}`}
                   >
                     {item.stage}
                   </span>
                 </td>
                 <td className="description-cell">
                   <div className="description-wrapper">
-                    {item.description && (
-                      <>
-                        <button
-                          className="expand-btn"
-                          onClick={() => toggleDescription(item.id)}
-                          title="View description"
-                        >
-                          📝
-                        </button>
-                        {expandedDescriptions.has(item.id) && (
-                          <div className="description-popup">
-                            {item.description}
-                          </div>
-                        )}
-                      </>
-                    )}
+                    <button
+                      className="expand-btn"
+                      onClick={() => openModal(item)}
+                      title="View / edit description"
+                    >
+                      📝
+                    </button>
                     <button
                       className={`flag-btn ${flaggedItems.has(item.id) ? 'flagged' : ''}`}
                       onClick={() => toggleFlag(item.id)}
@@ -371,6 +434,37 @@ function ReferralPayouts({ university }) {
       </div>
 
       <div className="records-count">{tableData.length} records</div>
+
+      {/* DESCRIPTION MODAL */}
+      {modalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-popup" ref={modalRef}>
+            <h3 className="modal-title">Description</h3>
+            <textarea
+              className="modal-textarea"
+              value={modalText}
+              onChange={(e) => setModalText(e.target.value)}
+              placeholder="Enter description..."
+              rows={5}
+            />
+            <div className="modal-actions">
+              <button
+                className="modal-cancel-btn"
+                onClick={closeModal}
+              >
+                Cancel
+              </button>
+              <button
+                className={`modal-save-btn ${hasChanges ? 'modal-save-btn-active' : ''}`}
+                disabled={!hasChanges}
+                onClick={saveModal}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

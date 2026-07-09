@@ -24,13 +24,6 @@ function startOfDay(d) {
   return c;
 }
 
-function isBetween(date, a, b) {
-  if (!a || !b) return false;
-  const lo = a < b ? a : b;
-  const hi = a < b ? b : a;
-  return date > lo && date < hi;
-}
-
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }

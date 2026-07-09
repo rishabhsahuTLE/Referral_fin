@@ -12,7 +12,7 @@ function Sidebar({
   const [showUniversityDropdown, setShowUniversityDropdown] = React.useState(false);
 
   const handleAdminClick = () => {
-    window.open('https://referral-admin-zn23.vercel.app/', '_blank', 'noopener,noreferrer');
+    window.location.href = 'https://referral-admin-zn23.vercel.app/';
   };
 
   return (
